@@ -1,0 +1,44 @@
+{
+  "limits": [
+    {
+      "dataset": "mobility-week",
+      "principal": "analyst-a",
+      "epsilon": {
+        "numerator": 2,
+        "denominator": 1
+      },
+      "delta": {
+        "numerator": 1,
+        "denominator": 1000
+      }
+    }
+  ],
+  "reservations": [
+    {
+      "id": "count",
+      "dataset": "mobility-week",
+      "principal": "analyst-a",
+      "epsilon": {
+        "numerator": 1,
+        "denominator": 2
+      },
+      "delta": {
+        "numerator": 1,
+        "denominator": 10000
+      }
+    },
+    {
+      "id": "histogram",
+      "dataset": "mobility-week",
+      "principal": "analyst-a",
+      "epsilon": {
+        "numerator": 1,
+        "denominator": 1
+      },
+      "delta": {
+        "numerator": 1,
+        "denominator": 10000
+      }
+    }
+  ]
+}
