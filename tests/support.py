@@ -59,6 +59,46 @@ def run_influence_cli(db, source, output, env=None):
     )
 
 
+def run_clip_cli(*args, env=None):
+    """Drive the clipped microdata delivery CLI."""
+    environment = {"PYTHONPATH": str(SRC)}
+    if env:
+        environment.update(env)
+    return subprocess.run(
+        [sys.executable, "-m", "privacy_budget.clip_cli", *map(str, args)],
+        capture_output=True,
+        text=True,
+        env=environment,
+        cwd=str(ROOT),
+    )
+
+
+def clip_config(stream_id="s", max_partitions=1, max_rows=1):
+    return {
+        "stream_id": stream_id,
+        "max_partitions": max_partitions,
+        "max_rows": max_rows,
+    }
+
+
+def clip_row(ident, unit, partition, priority, value=0):
+    return {
+        "id": ident,
+        "unit": unit,
+        "partition": partition,
+        "priority": priority,
+        "value": value,
+    }
+
+
+def clip_batch(stream_id, sequence, changes):
+    return {"stream_id": stream_id, "sequence": sequence, "changes": list(changes)}
+
+
+def clip_change(ident, before, after):
+    return {"id": ident, "before": before, "after": after}
+
+
 def write_json(path, payload):
     Path(path).write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
     return Path(path)

@@ -1,0 +1,5 @@
+{
+  "stream_id": "demo-stream",
+  "max_partitions": 1,
+  "max_rows": 1
+}

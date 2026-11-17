@@ -1,0 +1,12 @@
+{
+  "stream_id": "demo-stream",
+  "sequence": 2,
+  "changes": [
+    {"id": "a",
+     "before": {"id": "a", "unit": "U", "partition": "p", "priority": 1, "value": 10},
+     "after": {"id": "a", "unit": "V", "partition": "p", "priority": 1, "value": 10}},
+    {"id": "b",
+     "before": {"id": "b", "unit": "U", "partition": "p", "priority": 2, "value": 20},
+     "after": null}
+  ]
+}

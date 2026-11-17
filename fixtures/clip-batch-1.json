@@ -1,0 +1,14 @@
+{
+  "stream_id": "demo-stream",
+  "sequence": 1,
+  "changes": [
+    {"id": "a", "before": null,
+     "after": {"id": "a", "unit": "U", "partition": "p", "priority": 1, "value": 10}},
+    {"id": "b", "before": null,
+     "after": {"id": "b", "unit": "U", "partition": "p", "priority": 2, "value": 20}},
+    {"id": "c", "before": null,
+     "after": {"id": "c", "unit": "U", "partition": "q", "priority": 3, "value": 30}},
+    {"id": "v", "before": null,
+     "after": {"id": "v", "unit": "V", "partition": "p", "priority": 7, "value": 70}}
+  ]
+}

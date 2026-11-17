@@ -74,6 +74,32 @@ python3 tests/build_influence_fixture.py fixtures/influence-source.db
 
 `plan`/`catalog` 省略 `--output` 时写 stdout。样例见 `fixtures/release-*.json`。
 
+### v3 裁剪微数据交付管道
+
+```sh
+# 生产侧：不可变配置 → 提交源批次并交付不可变净差分包 → 随时回放
+python3 -m privacy_budget.clip_cli init   --db run/producer.db --source fixtures/clip-config.json
+python3 -m privacy_budget.clip_cli apply  --db run/producer.db --source fixtures/clip-batch-1.json \
+    --output run/packet-1.json
+python3 -m privacy_budget.clip_cli apply  --db run/producer.db --source fixtures/clip-batch-2.json \
+    --output run/packet-2.json
+python3 -m privacy_budget.clip_cli export --db run/producer.db --sequence 1 --output run/packet-1.json
+
+# 消费侧：独立库只接收已冻结包，维护裁剪行集与回执
+python3 -m privacy_budget.clip_cli sink-init --db run/consumer.db --source fixtures/clip-config.json
+python3 -m privacy_budget.clip_cli consume   --db run/consumer.db --source run/packet-1.json
+python3 -m privacy_budget.clip_cli snapshot  --db run/consumer.db --role consumer \
+    --output run/consumer-snapshot.json
+```
+
+每个 unit 先按各 partition 的 `(min priority, id, partition 名)` 排序取前
+`max_partitions` 个分区，再在每个获选分区内按 `(priority, id)` 取前 `max_rows` 行；每批
+都基于**整批最终源状态**重新裁剪，因此换属、换分区、删除与优先级更正都会重新决定补入
+与撤回。生产侧在一次事务中提交完整源状态、裁剪成员、sequence 与不可变包，之后才写文件；
+消费侧在一次事务中提交行差分与回执。契约、恢复边界与 8 MB 可消费上限见
+[裁剪交付文档](docs/clipping.md)。该管道不计算隐私预算、噪声或反事实影响，也不声称
+裁剪本身等于 DP 发布。
+
 ## 测试
 
 ```sh
@@ -88,6 +114,10 @@ python3 tests/build_influence_fixture.py fixtures/influence-source.db
 `tests/influence_oracle.py` 是仅限测试的真实逐 unit 删行 SQL oracle；
 `tests/test_influence_*.py` 覆盖影响审计器的关系语义、精确反事实差分、left/anti
 缺席条件、distinct 支持、共享计算旁路核实、WAL 快照隔离与随机差分 fuzz。
+`tests/clip_oracle.py` 是独立重写的逐批全量裁剪 oracle（不调用生产裁剪函数）；
+`tests/test_clip.py` 与 `tests/test_clip_contract.py` 覆盖验收场景、跨分区优先级
+更正、换属、零净差分、8 MB 受控拒绝、生产导出失败、消费提交前后故障、跨重启重试、
+历史同序异内容、断链、并发与严格路径/字段契约。
 
 ## 约束与边界
 
@@ -114,5 +144,10 @@ python3 tests/build_influence_fixture.py fixtures/influence-source.db
 * `influence_snapshot.py`：只读 SQLite 快照、声明 schema/类型校验与逻辑快照哈希。
 * `influence_engine.py`：bag 关系执行、行身份管理与逐 unit 局部反事实差分传播。
 * `influence_api.py`：只读审计 API、报告装配与确定性内容摘要。
+* `clip_model.py`：裁剪配置/批次/包严格契约、全量重裁剪、净差分与规范摘要（无 I/O）。
+* `clip_store.py`：生产/消费两份 SQLite 状态、角色绑定与路径/符号链接防护。
+* `clip_api.py`：`init`/`apply`/`export`/`sink-init`/`consume`/`snapshot` 事务实现与
+  测试专用故障注入边界。
+* `clip_cli.py`：`python -m privacy_budget.clip_cli` 入口。
 
 fixtures 为明确自制的虚构合成样例，代码与样例采用 MIT 许可。
