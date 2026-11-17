@@ -1,0 +1,40 @@
+{
+  "release_id": "sum-ab",
+  "dataset": "mobility-week",
+  "principal": "analyst-a",
+  "snapshot": "wave-1",
+  "dimensions": ["x1", "x2"],
+  "fresh": [
+    {
+      "id": "F",
+      "coefficients": [
+        { "numerator": 1, "denominator": 1 },
+        { "numerator": 1, "denominator": 1 }
+      ],
+      "value": { "numerator": 40, "denominator": 1 },
+      "variance": { "numerator": 1, "denominator": 1 },
+      "epsilon": { "numerator": 1, "denominator": 2 },
+      "delta": { "numerator": 0, "denominator": 1 }
+    }
+  ],
+  "reuse": [
+    { "release_id": "seed-ab", "query_id": "A" },
+    { "release_id": "seed-ab", "query_id": "B" }
+  ],
+  "queries": [
+    {
+      "id": "S",
+      "coefficients": [
+        { "numerator": 2, "denominator": 1 },
+        { "numerator": 1, "denominator": 1 }
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "sum-variance",
+      "weights": { "S": { "numerator": 1, "denominator": 1 } },
+      "max_variance": { "numerator": 6, "denominator": 1 }
+    }
+  ]
+}

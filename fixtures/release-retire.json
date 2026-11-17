@@ -1,0 +1,28 @@
+{
+  "release_id": "difference-ab",
+  "dataset": "mobility-week",
+  "principal": "analyst-a",
+  "snapshot": "wave-1",
+  "dimensions": ["x1", "x2"],
+  "fresh": [],
+  "reuse": [
+    { "release_id": "seed-ab", "query_id": "A" },
+    { "release_id": "seed-ab", "query_id": "B" }
+  ],
+  "queries": [
+    {
+      "id": "x2-only",
+      "coefficients": [
+        { "numerator": 0, "denominator": 1 },
+        { "numerator": 1, "denominator": 1 }
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "variance",
+      "weights": { "x2-only": { "numerator": 1, "denominator": 1 } },
+      "max_variance": { "numerator": 2, "denominator": 1 }
+    }
+  ]
+}

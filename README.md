@@ -1,6 +1,7 @@
-# data-qd-148 · 差分隐私预算台账
+# data-qd-148 · 差分隐私预算台账与联合发布规划
 
-Compositional epsilon-delta budget accounting with atomic reservation checks。业务输入、计算和当前边界详见 [数据契约](docs/contract.md)。
+精确有理数的差分隐私预算台账，以及建立在同一目录上的**可复用带噪统计联合发布规划器**。
+业务输入、计算与边界详见 [数据契约](docs/contract.md)。
 
 ## 安装与演示
 
@@ -12,44 +13,67 @@ python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements-build.lock
 .venv/bin/python -m pip install --no-build-isolation --no-deps .
 .venv/bin/python -m pip check
+```
+
+### v1 批处理台账（语义不变）
+
+```sh
 .venv/bin/privacy-budget --source fixtures/input.json --output run/report.json
+```
+
+### v2 联合发布规划器
+
+```sh
+# 初始化不可变限额（按 dataset/principal 跨 snapshot 累计）
+.venv/bin/python -m privacy_budget.release_cli init \
+    --db run/catalog.db --source fixtures/release-limits.json
+
+# 只读规划：输出预算—误差 Pareto 前沿，不返回估计、不改变状态
+.venv/bin/python -m privacy_budget.release_cli plan \
+    --db run/catalog.db --source fixtures/release-request.json --output run/plan.json
+
+# 显式选择并提交；先持久提交再交付报告
+.venv/bin/python -m privacy_budget.release_cli publish \
+    --db run/catalog.db --source fixtures/release-request.json \
+    --choice CHOICE_ID --output run/report.json
+
+# 目录查询与永久停用
+.venv/bin/python -m privacy_budget.release_cli catalog \
+    --db run/catalog.db --dataset mobility-week --principal analyst-a --snapshot wave-1
+.venv/bin/python -m privacy_budget.release_cli retire \
+    --db run/catalog.db --dataset mobility-week --principal analyst-a \
+    --snapshot wave-1 --measurement n1
+```
+
+`plan`/`catalog` 省略 `--output` 时写 stdout。样例见 `fixtures/release-*.json`。
+
+## 测试
+
+```sh
 .venv/bin/python -m unittest discover -s tests -v
 ```
 
-本地已有wheel时，安装构建工具可加 `--no-index --find-links <公共wheel缓存目录>`。
-修改源码后重新安装。本仓不共享其他仓环境，不依赖Docker、外部账号或持续服务。
+`tests/oracle.py` 是独立重写的穷举 oracle，用于核对规划器在维数 1–3、小候选集上的
+可行性、完整 Pareto 前沿、等指标去重、精确方差与顺序扣费；`tests/test_release.py`
+覆盖跨重启身份冲突、别名谱系、停用不退款、原报告重试、并发预算竞争与导出失败重试。
 
-输入JSON最多8MB，拒绝重复键、非有限数值和未定义字段；源字节SHA256随结果保留。
-输出是可独立读取的JSON；成功后原子替换，输入/计算失败退出2并保留旧报告。
-输入和输出不得相同，输出符号链接拒绝。单操作者批处理，不承诺并发发布或断电恢复。
-同输入重跑不累加。测试使用临时目录，运行产物在忽略的run/。
+## 约束与边界
 
-src/privacy_budget/model.py 为业务模型，相关算法模块独立组织；common.py 提供受限JSON及报告发布，
-cli.py 衔接数据链路。fixtures 为明确自制样例，代码与样例采用MIT许可。
+* 输入 JSON 最多 8 MB，拒绝重复键、非有限数值和未定义字段；源字节 SHA256 随结果保留。
+* 输出是独立可读 JSON；成功后原子替换，失败退出 2 并保留旧报告。
+* 输入和输出不得相同，输出符号链接拒绝。
+* 规划只用当前目录已公开的测量与别名；不生成噪声、不验证 DP 证明、不声称规划本身满足 DP。
+* 新增测量按顺序组合（`sum epsilon`、`sum delta`）扣费；复用别名零新增成本，但共享噪声
+  的协方差会精确累计，不会被当作独立样本。
+* 数据库写操作在 `BEGIN IMMEDIATE` 事务内完成，两个进程竞争预算或与 `retire` 交错时只会
+  得到某个串行顺序的完整结果。
 
-## Scope and sample
-# Basic approximate-DP budget composition v1
+## 模块
 
-隐私治理人员核验同一dataset/principal预算范围内的机制预留。limits唯一(dataset,principal)，声明最大epsilon>=0、delta>=0有理数；reservations最多20000个唯一id，绑定已声明范围，epsilon>0、delta∈[0,1)。每值是整数分子/正整数分母(<=10^12)，精确Fraction。
-采用基础顺序组合定理：总epsilon=sum epsilon_i，总delta=sum delta_i；任一范围超过预算，则整份批次原子拒绝，不部分接纳。通过时输出每项依据、组合总量、限额和余量。未发生预留的预算也输出零消耗。
-这是纯会计台账，不实现差分隐私机制、随机噪声、安全存储、用户级并行组合、advanced composition或跨dataset隐私单元识别；同一principal/dataset组内假定机制确实作用于同一受保护数据范围。预算满足不证明算法本身DP或没有其他隐私泄露。
-样例epsilon总计3/2、delta总计1/5000，未超epsilon2/delta1/1000限额。超额时失败且不会输出可误认为部分成功的报告。
+* `model.py`、`budget.py`、`cli.py`、`common.py`：v1 批处理台账。
+* `release_model.py`：严格契约解析、精确线性代数、谱系展开、Pareto 枚举（无 I/O）。
+* `store.py`：SQLite 目录、限额、原始测量身份、查询别名与已提交报告。
+* `release_api.py`：`init`/`plan`/`publish`/`retire`/`catalog` 事务实现。
+* `release_cli.py`：`python -m privacy_budget.release_cli` 入口。
 
-
-## Scope and sample
-# Basic approximate-DP budget composition v1
-
-隐私治理人员核验同一dataset/principal预算范围内的机制预留。limits唯一(dataset,principal)，声明最大epsilon>=0、delta>=0有理数；reservations最多20000个唯一id，绑定已声明范围，epsilon>0、delta∈[0,1)。每值是整数分子/正整数分母(<=10^12)，精确Fraction。
-采用基础顺序组合定理：总epsilon=sum epsilon_i，总delta=sum delta_i；任一范围超过预算，则整份批次原子拒绝，不部分接纳。通过时输出每项依据、组合总量、限额和余量。未发生预留的预算也输出零消耗。
-这是纯会计台账，不实现差分隐私机制、随机噪声、安全存储、用户级并行组合、advanced composition或跨dataset隐私单元识别；同一principal/dataset组内假定机制确实作用于同一受保护数据范围。预算满足不证明算法本身DP或没有其他隐私泄露。
-样例epsilon总计3/2、delta总计1/5000，未超epsilon2/delta1/1000限额。超额时失败且不会输出可误认为部分成功的报告。
-
-
-## Scope and sample
-# Basic approximate-DP budget composition v1
-
-隐私治理人员核验同一dataset/principal预算范围内的机制预留。limits唯一(dataset,principal)，声明最大epsilon>=0、delta>=0有理数；reservations最多20000个唯一id，绑定已声明范围，epsilon>0、delta∈[0,1)。每值是整数分子/正整数分母(<=10^12)，精确Fraction。
-采用基础顺序组合定理：总epsilon=sum epsilon_i，总delta=sum delta_i；任一范围超过预算，则整份批次原子拒绝，不部分接纳。通过时输出每项依据、组合总量、限额和余量。未发生预留的预算也输出零消耗。
-这是纯会计台账，不实现差分隐私机制、随机噪声、安全存储、用户级并行组合、advanced composition或跨dataset隐私单元识别；同一principal/dataset组内假定机制确实作用于同一受保护数据范围。预算满足不证明算法本身DP或没有其他隐私泄露。
-样例epsilon总计3/2、delta总计1/5000，未超epsilon2/delta1/1000限额。超额时失败且不会输出可误认为部分成功的报告。
-
+fixtures 为明确自制的虚构合成样例，代码与样例采用 MIT 许可。

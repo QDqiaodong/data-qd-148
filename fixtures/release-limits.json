@@ -1,0 +1,10 @@
+{
+  "limits": [
+    {
+      "dataset": "mobility-week",
+      "principal": "analyst-a",
+      "epsilon": { "numerator": 2, "denominator": 1 },
+      "delta": { "numerator": 1, "denominator": 1000 }
+    }
+  ]
+}
