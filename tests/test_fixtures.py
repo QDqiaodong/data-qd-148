@@ -40,5 +40,51 @@ class Fixtures(unittest.TestCase):
             self.assertEqual(Fraction(independent["new_epsilon"]), Fraction(1, 2))
 
 
+class PolicyFixtures(unittest.TestCase):
+    """The shipped policy fixtures follow the documented linked scenario."""
+
+    def test_fixtures_are_executable_and_coherent(self):
+        import support
+        from fractions import Fraction as F
+
+        root = support.ROOT / "fixtures"
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            rejected = support.run_policy_cli(
+                "policy", "--source", root / "policy-violation.json",
+                "--output", base / "violation.json",
+            )
+            self.assertEqual(rejected.returncode, 2)
+            self.assertIn("org-wildcard", rejected.stderr)
+            self.assertIn("dataset-a", rejected.stderr)
+            self.assertIn("dataset-b", rejected.stderr)
+            self.assertFalse((base / "violation.json").exists())
+
+            passed = support.run_policy_cli(
+                "policy", "--source", root / "policy-pass.json",
+                "--output", base / "pass.json",
+            )
+            self.assertEqual(passed.returncode, 0, passed.stderr)
+            report = json.loads((base / "pass.json").read_text())
+            self.assertEqual(report["status"], "ok")
+            check = report["rule_checks"][0]
+            self.assertEqual(F(check["epsilon_sum"]), F(5))
+            self.assertEqual(F(check["delta_sum"]), F(1, 10))
+
+            tied = support.run_policy_cli(
+                "policy", "--source", root / "policy-tie.json",
+                "--output", base / "tie.json",
+            )
+            self.assertEqual(tied.returncode, 0, tied.stderr)
+            tie_report = json.loads((base / "tie.json").read_text())
+            record_a = next(
+                s for s in tie_report["scopes"] if s["dataset"] == "dataset-a"
+            )
+            self.assertEqual(record_a["epsilon_sources"], ["exact-a"])
+            self.assertEqual(
+                record_a["matching_rule_ids"], ["exact-a", "org-wildcard"]
+            )
+
+
 if __name__ == "__main__":
     unittest.main()

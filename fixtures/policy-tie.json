@@ -1,0 +1,32 @@
+{
+  "scopes": [
+    {
+      "dataset": "dataset-a",
+      "principal": "analyst-a",
+      "epsilon": { "numerator": 4, "denominator": 1 },
+      "delta": { "numerator": 1, "denominator": 20 }
+    },
+    {
+      "dataset": "dataset-b",
+      "principal": "analyst-a",
+      "epsilon": { "numerator": 1, "denominator": 1 },
+      "delta": { "numerator": 1, "denominator": 20 }
+    }
+  ],
+  "rules": [
+    {
+      "id": "org-wildcard",
+      "dataset_selector": "*",
+      "principal_selector": "*",
+      "epsilon": { "numerator": 5, "denominator": 1 },
+      "delta": { "numerator": 1, "denominator": 10 }
+    },
+    {
+      "id": "exact-a",
+      "dataset_selector": "dataset-a",
+      "principal_selector": "analyst-a",
+      "epsilon": { "numerator": 4, "denominator": 1 },
+      "delta": { "numerator": 1, "denominator": 20 }
+    }
+  ]
+}

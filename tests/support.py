@@ -28,6 +28,20 @@ def run_cli(*args, env=None):
     )
 
 
+def run_policy_cli(*args, env=None):
+    """Drive the v1 entry point with the ``policy`` subcommand."""
+    environment = {"PYTHONPATH": str(SRC)}
+    if env:
+        environment.update(env)
+    return subprocess.run(
+        [sys.executable, "-m", "privacy_budget.cli", *map(str, args)],
+        capture_output=True,
+        text=True,
+        env=environment,
+        cwd=str(ROOT),
+    )
+
+
 def write_json(path, payload):
     Path(path).write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
     return Path(path)

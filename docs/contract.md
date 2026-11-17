@@ -142,6 +142,14 @@ python -m privacy_budget.release_cli catalog  --db DB --dataset D --principal P 
 `sum epsilon`、`sum delta`，任一 scope 超额则整批原子拒绝。v2 的 `init` 沿用 v1 的限额行
 格式，但新增 `plan`/`publish`/`retire`/`catalog` 的持久目录与联合规划能力。
 
+## 与离线策略编译器（policy）的关系
+
+`privacy-budget policy`（见 [policy.md](policy.md)）是 v1/v2 之外的**只读离线**组件：
+它只编译 scope 目录与组织级上限规则，输出逐 scope 有效额度与聚合检查报告，不创建发布、
+测量或预留记录，也不修改本文档描述的一次性核验与联合发布行为。两者的治理分工不同：
+policy 负责把组织规则解析为每个 scope 的有效额度并核验跨 scope 的重叠聚合上限；v1/v2
+则在各自的一次性核验或持久目录中按既定额度顺序组合扣费。
+
 ## 验收样例（联动）
 
 单位方差、噪声独立的 `n1`、`n2`，先发布 `A = x1 + n1`、`B = x1 + x2 + n1 + n2`：

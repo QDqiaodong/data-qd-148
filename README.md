@@ -21,6 +21,18 @@ python3 -m venv .venv
 .venv/bin/privacy-budget --source fixtures/input.json --output run/report.json
 ```
 
+### v1.5 离线组织级策略编译器（只读，无任何状态变更）
+
+```sh
+.venv/bin/privacy-budget policy \
+    --source fixtures/policy-pass.json --output run/policy-report.json
+```
+
+逐 scope 求配置额度与命中规则上限的逐项最小值（通配始终是硬上限、同值并列
+来源全部保留），再按每条规则核验所有命中 scope **有效额度之和**的聚合上限；
+聚合超额时退出 2、报告确定的违规规则与 scope 明细且不覆盖旧报告。契约与治理
+语义见 [离线策略编译器文档](docs/policy.md)。
+
 ### v2 联合发布规划器
 
 ```sh
@@ -56,6 +68,8 @@ python3 -m venv .venv
 `tests/oracle.py` 是独立重写的穷举 oracle，用于核对规划器在维数 1–3、小候选集上的
 可行性、完整 Pareto 前沿、等指标去重、精确方差与顺序扣费；`tests/test_release.py`
 覆盖跨重启身份冲突、别名谱系、停用不退款、原报告重试、并发预算竞争与导出失败重试。
+`tests/policy_oracle.py` 与 `tests/test_policy_oracle.py` 用独立枚举 oracle 核对策略
+编译器的选择器匹配、并列来源、逐 scope 有效额度、重叠聚合违规与报告稳定性。
 
 ## 约束与边界
 
@@ -70,7 +84,10 @@ python3 -m venv .venv
 
 ## 模块
 
-* `model.py`、`budget.py`、`cli.py`、`common.py`：v1 批处理台账。
+* `model.py`、`budget.py`、`cli.py`、`common.py`：v1 批处理台账；`cli.py` 同时承载
+  只读的 `policy` 离线组织级策略编译子命令（无子命令时旧契约不变）。
+* `policy_model.py`：策略文档的严格契约解析、精确/通配选择器匹配、逐 scope 有效额度
+  与并列来源追踪、重叠规则聚合核验、规范化报告摘要（无 I/O）。
 * `release_model.py`：严格契约解析、精确线性代数、谱系展开、Pareto 枚举（无 I/O）。
 * `store.py`：SQLite 目录、限额、原始测量身份、查询别名与已提交报告。
 * `release_api.py`：`init`/`plan`/`publish`/`retire`/`catalog` 事务实现。
