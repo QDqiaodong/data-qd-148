@@ -1,0 +1,40 @@
+{
+  "tables": [
+    {
+      "name": "people",
+      "id_column": "pid",
+      "unit_column": "unit",
+      "columns": {"city": "text", "age": "integer"}
+    },
+    {
+      "name": "purchases",
+      "id_column": "purchase_id",
+      "unit_column": "unit",
+      "columns": {"pid": "text", "amount": "integer", "tag": "text"}
+    }
+  ],
+  "nodes": [
+    {"id": "scan_people", "op": "scan", "table": "people", "alias": "p"},
+    {"id": "scan_purchases", "op": "scan", "table": "purchases", "alias": "c"},
+    {
+      "id": "join_purchases",
+      "op": "left",
+      "left": "scan_people",
+      "right": "scan_purchases",
+      "on": [{"left_column": "p.pid", "right_column": "c.pid"}]
+    },
+    {
+      "id": "by_city",
+      "op": "aggregate",
+      "input": "join_purchases",
+      "keys": ["p.city"],
+      "metrics": [
+        {"name": "rows", "op": "count_rows", "column": null},
+        {"name": "buyers", "op": "count", "column": "c.purchase_id"},
+        {"name": "total_amount", "op": "sum", "column": "c.amount"},
+        {"name": "distinct_tags", "op": "count_distinct", "column": "c.tag"}
+      ]
+    }
+  ],
+  "root": "by_city"
+}

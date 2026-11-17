@@ -10,5 +10,6 @@ dependencies = []
 [project.scripts]
 privacy-budget = "privacy_budget.cli:main"
 privacy-budget-release = "privacy_budget.release_cli:main"
+privacy-budget-influence = "privacy_budget.cli:main"
 [tool.setuptools.packages.find]
 where = ["src"]

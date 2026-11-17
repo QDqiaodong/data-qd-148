@@ -42,6 +42,23 @@ def run_policy_cli(*args, env=None):
     )
 
 
+def run_influence_cli(db, source, output, env=None):
+    """Drive the read-only influence audit subcommand."""
+    environment = {"PYTHONPATH": str(SRC)}
+    if env:
+        environment.update(env)
+    return subprocess.run(
+        [
+            sys.executable, "-m", "privacy_budget.cli", "influence",
+            "--db", str(db), "--source", str(source), "--output", str(output),
+        ],
+        capture_output=True,
+        text=True,
+        env=environment,
+        cwd=str(ROOT),
+    )
+
+
 def write_json(path, payload):
     Path(path).write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
     return Path(path)

@@ -33,6 +33,21 @@ python3 -m venv .venv
 聚合超额时退出 2、报告确定的违规规则与 scope 明细且不覆盖旧报告。契约与治理
 语义见 [离线策略编译器文档](docs/policy.md)。
 
+### v1.6 隐私单元关系影响审计器（只读，不生成噪声、不扣预算）
+
+```sh
+python3 tests/build_influence_fixture.py fixtures/influence-source.db
+.venv/bin/privacy-budget influence \
+    --db fixtures/influence-source.db \
+    --source fixtures/influence-query.json \
+    --output run/influence-report.json
+```
+
+在一份显式只读事务快照上，对每个隐私单元精确计算“移除该 unit 的全部源记录后，
+聚合查询的每个 (组,指标) 单元格怎样变化”，用于发布前检查联接放大与隐私单元
+定义。它不删除记录、不声称 DP 全局敏感度；契约、影响表示与报告语义见
+[隐私单元关系影响审计器文档](docs/influence.md)。
+
 ### v2 联合发布规划器
 
 ```sh
@@ -70,6 +85,9 @@ python3 -m venv .venv
 覆盖跨重启身份冲突、别名谱系、停用不退款、原报告重试、并发预算竞争与导出失败重试。
 `tests/policy_oracle.py` 与 `tests/test_policy_oracle.py` 用独立枚举 oracle 核对策略
 编译器的选择器匹配、并列来源、逐 scope 有效额度、重叠聚合违规与报告稳定性。
+`tests/influence_oracle.py` 是仅限测试的真实逐 unit 删行 SQL oracle；
+`tests/test_influence_*.py` 覆盖影响审计器的关系语义、精确反事实差分、left/anti
+缺席条件、distinct 支持、共享计算旁路核实、WAL 快照隔离与随机差分 fuzz。
 
 ## 约束与边界
 
@@ -92,5 +110,9 @@ python3 -m venv .venv
 * `store.py`：SQLite 目录、限额、原始测量身份、查询别名与已提交报告。
 * `release_api.py`：`init`/`plan`/`publish`/`retire`/`catalog` 事务实现。
 * `release_cli.py`：`python -m privacy_budget.release_cli` 入口。
+* `influence_model.py`：影响查询的严格契约解析、DAG/schema 校验与规范 SHA（无 I/O）。
+* `influence_snapshot.py`：只读 SQLite 快照、声明 schema/类型校验与逻辑快照哈希。
+* `influence_engine.py`：bag 关系执行、行身份管理与逐 unit 局部反事实差分传播。
+* `influence_api.py`：只读审计 API、报告装配与确定性内容摘要。
 
 fixtures 为明确自制的虚构合成样例，代码与样例采用 MIT 许可。

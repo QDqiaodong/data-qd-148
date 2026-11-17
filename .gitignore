@@ -4,3 +4,7 @@ build/
 dist/
 *.egg-info/
 __pycache__/
+# Reproducible synthetic SQLite sample built by tests/build_influence_fixture.py
+fixtures/influence-source.db
+fixtures/influence-source.db-wal
+fixtures/influence-source.db-shm
